@@ -1,7 +1,10 @@
 ## Interface: 30300
 ## Title: StatusBar
 ## Notes: Modifica la textura de las barras de vida por defecto.
-## Version: 1.0
-## Author: Peter
-
+init.lua
+utils\constants.lua
+utils\helpers.lua
+modules\layout.lua
+modules\bars.lua
+modules\tot.lua
 core.lua
