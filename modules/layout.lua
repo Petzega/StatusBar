@@ -69,12 +69,12 @@ end
 function ns.RepositionFrames()
     if PlayerFrame then
         PlayerFrame:ClearAllPoints()
-        PlayerFrame:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOM", -10, 160)
+        PlayerFrame:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOM", -100, 160)
     end
     
     if TargetFrame then
         TargetFrame:ClearAllPoints()
-        TargetFrame:SetPoint("BOTTOMLEFT", UIParent, "BOTTOM", 10, 160)
+        TargetFrame:SetPoint("BOTTOMLEFT", UIParent, "BOTTOM", 100, 160)
     end
     
     if FocusFrame then
@@ -89,16 +89,19 @@ function ns.CustomStyleFrames()
     ns.SafeHide(PlayerFrameTexture)
     ns.SafeHide(PlayerFrameBackground)
     ns.SafeHide(PlayerFrameFlash)
-    ns.SafeHide(PlayerPortrait)
-    ns.SafeHide(PlayerFramePortrait)
     ns.SafeHide(PlayerStatusTexture)
     ns.SafeHide(PlayerRestGlow)
     
     ns.CleanDefaultTextures(PlayerFrame)
+    -- Jugador: Separación limpia para evitar que la barra corte la imagen
+    ns.StylePortrait(PlayerFrameHealthBar, PlayerPortrait, "LEFT", "RIGHT", 0, 68)
     
     if PlayerRestIcon then PlayerRestIcon:Hide() end
     if PlayerAttackIcon then PlayerAttackIcon:Hide() end
-    if PlayerPVPIcon then PlayerPVPIcon:Hide() end
+    if PlayerPVPIcon then
+        PlayerPVPIcon:ClearAllPoints()
+        PlayerPVPIcon:SetPoint("CENTER", PlayerPortrait, "BOTTOMLEFT", 15, -5)
+    end
     
     if PlayerFrame then
         PlayerFrame:SetWidth(ns.BAR_WIDTH)
@@ -124,32 +127,21 @@ function ns.CustomStyleFrames()
 
     ns.ApplyCustomBackground(PlayerFrame, PlayerFrameHealthBar, PlayerFrameManaBar, ns.BAR_WIDTH)
     
-    if PlayerName then
-        PlayerName:ClearAllPoints()
-        PlayerName:SetPoint("BOTTOMLEFT", PlayerFrameHealthBar, "TOPLEFT", 2, 4)
-        PlayerName:SetJustifyH("LEFT")
-    end
-    
-    if PlayerLevelText then
-        PlayerLevelText:ClearAllPoints()
-        PlayerLevelText:SetPoint("BOTTOMLEFT", PlayerFrameHealthBar, "TOPLEFT", 2, 4)
-        PlayerName:ClearAllPoints()
-        PlayerName:SetPoint("LEFT", PlayerLevelText, "RIGHT", 4, 0)
-        PlayerLevelText:SetFontObject(SystemFont_Outline_Small)
-        PlayerLevelText:SetJustifyH("LEFT")
-        PlayerLevelText:Show()
-    end
     ns.AlignPlayerTexts()
 
     -- --- OBJETIVO ---
     ns.SafeHide(TargetFrameTextureFrameTexture)
     ns.SafeHide(TargetFrameBackground)
     ns.SafeHide(TargetFrameFlash)
-    ns.SafeHide(TargetFramePortrait)
     
     ns.CleanDefaultTextures(TargetFrame)
+    -- Objetivo: Separación limpia, con la cara invertida (mirando al jugador)
+    ns.StylePortrait(TargetFrameHealthBar, TargetFramePortrait, "RIGHT", "LEFT", 0, 68, true)
     
-    if TargetFrameTextureFramePVPIcon then TargetFrameTextureFramePVPIcon:Hide() end
+    if TargetFrameTextureFramePVPIcon then
+        TargetFrameTextureFramePVPIcon:ClearAllPoints()
+        TargetFrameTextureFramePVPIcon:SetPoint("CENTER", TargetFramePortrait, "BOTTOMRIGHT", 10, -5)
+    end
     if TargetFrameTextureFrame then TargetFrameTextureFrame:EnableMouse(false) end
     
     if TargetFrame then
@@ -176,25 +168,6 @@ function ns.CustomStyleFrames()
 
     ns.ApplyCustomBackground(TargetFrame, TargetFrameHealthBar, TargetFrameManaBar, ns.BAR_WIDTH)
     
-    if TargetFrameTextureFrameName then
-        TargetFrameTextureFrameName:ClearAllPoints()
-        TargetFrameTextureFrameName:SetJustifyH("RIGHT")
-    end
-    
-    if TargetFrameTextureFrameLevelText then
-        TargetFrameTextureFrameLevelText:ClearAllPoints()
-        TargetFrameTextureFrameLevelText:SetPoint("BOTTOMRIGHT", TargetFrameHealthBar, "TOPRIGHT", -2, 4)
-        TargetFrameTextureFrameLevelText:SetFontObject(SystemFont_Outline_Small)
-        TargetFrameTextureFrameLevelText:SetJustifyH("RIGHT")
-        TargetFrameTextureFrameLevelText:Show()
-        
-        -- El nombre se alinea a la izquierda del nivel
-        TargetFrameTextureFrameName:SetPoint("RIGHT", TargetFrameTextureFrameLevelText, "LEFT", -4, 0)
-    else
-        if TargetFrameTextureFrameName then
-            TargetFrameTextureFrameName:SetPoint("BOTTOMRIGHT", TargetFrameHealthBar, "TOPRIGHT", -2, 4)
-        end
-    end
     ns.AlignTargetTexts()
     ns.PositionTargetBuffs()
 
@@ -211,12 +184,16 @@ function ns.CustomStyleFrames()
     ns.SafeHide(FocusFrameTextureFrameTexture)
     ns.SafeHide(FocusFrameBackground)
     ns.SafeHide(FocusFrameFlash)
-    ns.SafeHide(FocusFramePortrait)
     
     ns.CleanDefaultTextures(FocusFrame)
+    -- Foco: Separación limpia, con la cara invertida
+    ns.StylePortrait(FocusFrameHealthBar, FocusFramePortrait, "RIGHT", "LEFT", 0, 68, true)
     
     if FocusFrameTextureFrameLevelText then FocusFrameTextureFrameLevelText:Hide() end
-    if FocusFrameTextureFramePVPIcon then FocusFrameTextureFramePVPIcon:Hide() end
+    if FocusFrameTextureFramePVPIcon then
+        FocusFrameTextureFramePVPIcon:ClearAllPoints()
+        FocusFrameTextureFramePVPIcon:SetPoint("CENTER", FocusFramePortrait, "BOTTOMRIGHT", 0, 0)
+    end
     if FocusFrameTextureFrame then FocusFrameTextureFrame:EnableMouse(false) end
     
     if FocusFrame then
@@ -243,9 +220,5 @@ function ns.CustomStyleFrames()
 
     ns.ApplyCustomBackground(FocusFrame, FocusFrameHealthBar, FocusFrameManaBar, ns.BAR_WIDTH)
     
-    if FocusFrameTextureFrameName then
-        FocusFrameTextureFrameName:ClearAllPoints()
-        FocusFrameTextureFrameName:SetPoint("BOTTOMLEFT", FocusFrameHealthBar, "TOPLEFT", 2, 4)
-    end
     ns.AlignFocusTexts()
 end

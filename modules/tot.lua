@@ -34,11 +34,30 @@ function ns.InitCustomToT()
 
     ns.ApplyCustomBackground(customToT, cTotHP, cTotMana, ns.TOT_WIDTH)
 
+    local cTotPortrait = customToT:CreateTexture(nil, "ARTWORK")
+    cTotPortrait:SetPoint("LEFT", cTotHP, "RIGHT", 0, -5)
+    cTotPortrait:SetSize(42, 42)
+    cTotPortrait:SetTexCoord(0.95, 0.05, 0.05, 0.95) -- Cuadrado con esquinas redondeadas (invertido)
+
+    if customToT.portraitBg then
+        customToT.portraitBg:Hide()
+    end
+
     local cTotName = customToT:CreateFontString(nil, "OVERLAY")
-    cTotName:SetFont("Fonts\\FRIZQT__.TTF", 10, "OUTLINE")
-    cTotName:SetPoint("BOTTOMLEFT", cTotHP, "TOPLEFT", 2, 2)
-    cTotName:SetJustifyH("LEFT")
+    cTotName:SetFont("Fonts\\FRIZQT__.TTF", 12, "OUTLINE")
+    cTotName:SetPoint("BOTTOM", cTotHP, "TOP", 0, 5)
+    cTotName:SetJustifyH("CENTER")
     cTotName:SetTextColor(1, 1, 1, 1)
+
+    local cTotLevel = customToT:CreateFontString(nil, "OVERLAY")
+    cTotLevel:SetFont("Fonts\\FRIZQT__.TTF", 10, "OUTLINE")
+    cTotLevel:SetPoint("BOTTOMLEFT", cTotPortrait, "BOTTOMLEFT", -2, -2)
+    cTotLevel:SetTextColor(1, 0.82, 0) -- Dorado como el Target
+
+    local cTotPVPIcon = customToT:CreateTexture(nil, "OVERLAY")
+    cTotPVPIcon:SetSize(32, 32)
+    cTotPVPIcon:SetPoint("CENTER", cTotPortrait, "BOTTOMRIGHT", 0, 0)
+    cTotPVPIcon:Hide()
 
     local cTotHPText = cTotHP:CreateFontString(nil, "OVERLAY")
     cTotHPText:SetFont("Fonts\\FRIZQT__.TTF", 10, "OUTLINE")
@@ -63,16 +82,29 @@ function ns.InitCustomToT()
         end
 
         customToT:SetAlpha(1)
+        SetPortraitTexture(cTotPortrait, "targettarget")
+
+        local factionGroup = UnitFactionGroup("targettarget")
+        if UnitIsPVPFreeForAll("targettarget") then
+            cTotPVPIcon:SetTexture("Interface\\TargetingFrame\\UI-PVP-FFA")
+            cTotPVPIcon:Show()
+        elseif factionGroup and factionGroup ~= "Neutral" and UnitIsPVP("targettarget") then
+            cTotPVPIcon:SetTexture("Interface\\TargetingFrame\\UI-PVP-"..factionGroup)
+            cTotPVPIcon:Show()
+        else
+            cTotPVPIcon:Hide()
+        end
 
         local name = UnitName("targettarget") or ""
         local level = UnitLevel("targettarget")
         if level and level > 0 then
-            cTotName:SetText(name .. " " .. level)
+            cTotLevel:SetText(level)
         elseif level == -1 then
-            cTotName:SetText(name .. " ??")
+            cTotLevel:SetText("??")
         else
-            cTotName:SetText(name)
+            cTotLevel:SetText("")
         end
+        cTotName:SetText(name)
 
         local hp = UnitHealth("targettarget")
         local hpMax = UnitHealthMax("targettarget")

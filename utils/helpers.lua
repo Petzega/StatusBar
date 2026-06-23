@@ -15,7 +15,9 @@ function ns.CleanDefaultTextures(f)
     for i = 1, f:GetNumRegions() do
         local region = select(i, f:GetRegions())
         if region and region:GetObjectType() == "Texture" then
-            if region ~= f.customBg then
+            local isPortrait = (region == PlayerPortrait) or (region == TargetFramePortrait) or (region == FocusFramePortrait)
+            local isPVP = (region == PlayerPVPIcon) or (region == TargetFrameTextureFramePVPIcon) or (region == FocusFrameTextureFramePVPIcon)
+            if region ~= f.customBg and not isPortrait and not isPVP then
                 region:SetTexture(nil)
                 region:SetAlpha(0)
                 region:Hide()
@@ -28,9 +30,12 @@ function ns.CleanDefaultTextures(f)
         for i = 1, texFrame:GetNumRegions() do
             local region = select(i, texFrame:GetRegions())
             if region and region:GetObjectType() == "Texture" then
-                region:SetTexture(nil)
-                region:SetAlpha(0)
-                region:Hide()
+                local isPVP = (region == PlayerPVPIcon) or (region == TargetFrameTextureFramePVPIcon) or (region == FocusFrameTextureFramePVPIcon)
+                if not isPVP then
+                    region:SetTexture(nil)
+                    region:SetAlpha(0)
+                    region:Hide()
+                end
             end
         end
     end
@@ -92,4 +97,28 @@ function ns.StandardizeText(textString, parentBar, fontSize)
     
     textString:ClearAllPoints()
     textString:SetPoint("CENTER", parentBar, "CENTER", 0, 0)
+end
+
+-- Función para dar estilo cuadrado 2D a los retratos y anclarlos a las barras
+function ns.StylePortrait(anchorBar, portrait, point, relativePoint, offsetX, size, flipX)
+    if not portrait or not anchorBar then return end
+    
+    size = size or 31
+    portrait:ClearAllPoints()
+    portrait:SetSize(size, size)
+    portrait:SetPoint(point, anchorBar, relativePoint, offsetX, -5)
+    
+    -- Ajustar zoom para mostrar levemente el borde curvo nativo (esquinas redondeadas)
+    if flipX then
+        portrait:SetTexCoord(0.95, 0.05, 0.05, 0.95) -- Invertido horizontalmente
+    else
+        portrait:SetTexCoord(0.05, 0.95, 0.05, 0.95)
+    end
+    portrait:SetDrawLayer("ARTWORK")
+    portrait:Show()
+    
+    -- Ocultar fondo oscuro cuadrado que arruina las esquinas redondeadas
+    if portrait.customBg then
+        portrait.customBg:Hide()
+    end
 end
