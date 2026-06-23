@@ -46,16 +46,22 @@ El addon utiliza el patrón **Addon Namespace** para evitar contaminar el entorn
 * **`init.lua`**: Crea la tabla `ns` compartida entre archivos.
 * **`utils/constants.lua`**: Variables visuales (colores, tamaños `TOT_WIDTH`, anclajes `TOT_ANCHOR_X`).
 * **`utils/helpers.lua`**: Funciones reutilizables (`SafeHide`, `ApplyCustomBackground`, `StandardizeText`).
-* **`modules/layout.lua`**: Lógica de redimensionamiento de marcos (`CustomStyleFrames`) y reposicionamiento físico en pantalla (`RepositionFrames`).
+* **`modules/layout.lua`**: Lógica de redimensionamiento de marcos (`CustomStyleFrames`), reposicionamiento físico en pantalla (`RepositionFrames`), y **Layout de Cuadrícula de Auras Personalizado** (`PositionTargetBuffs`).
 * **`modules/bars.lua`**: Texturizado de las barras de vida/maná (`ApplyBarTextures`) y centrado de textos.
 * **`modules/tot.lua`**: Archivo exclusivo para instanciar y actualizar el Target-of-Target personalizado.
 * **`core.lua`**: Módulo centralizado. **Sólo** se encarga de escuchar eventos de WoW (`PLAYER_ENTERING_WORLD`, etc.) y aplicar hooks seguros (`hooksecurefunc`), delegando el trabajo real a los módulos.
+
+### D. Layout de Auras (Buffs/Debuffs)
+Por defecto, WoW envuelve las auras cada 122 píxeles. Como nuestra barra de vida es mucho más ancha (`ns.BAR_WIDTH` = 320px), se desarrolló una función iterativa en `modules/layout.lua` (`PositionTargetBuffs`) que:
+1. Reemplaza por completo el anclaje relativo original usando `ClearAllPoints()` y fijándolos con offsets matemáticos a la barra de vida.
+2. Organiza los buffs y debuffs usando **todo el ancho** de la barra (ej: 13 iconos de 22x22px por fila).
+3. Pone la primera fila a `Y=18` para flotar justo por encima del nombre del objetivo.
 
 ---
 
 ## 4. Estado Actual: Target-of-Target (ToT) Personalizado
 
-La necesidad del ToT es que sea movible a y este el lado derecho del target y no anclado por encima del target mismo. Adicionalmente es importante que el ToT sea clickeable para que cada vez que yo de click al ToT se vuelva el nuevo Target.
+La necesidad del ToT es que sea movible y este el lado derecho del target y no anclado por encima del target mismo. Adicionalmente es importante que el ToT sea clickeable para que cada vez que yo de click al ToT se vuelva el nuevo Target.
 
 ### El Problema del ToT Nativo
 El marco `TargetFrameToT` es un **Secure Unit Frame** hijo directo de `TargetFrame`. Esto causa dos problemas irresolubles:

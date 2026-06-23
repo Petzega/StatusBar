@@ -275,3 +275,30 @@ Con esto, no es necesario tocar el `SetPoint` dinámicamente; el sistema de rend
 ### Lección
 > **Los Secure Frames no pueden cambiar de posición o tamaño por código mientras el jugador está en combate.** Para marcos UI anclados a otros elementos dinámicos, usa anclajes estáticos (`SetPoint`) durante el evento de inicialización en vez de reposicionamientos dinámicos por frame o temporizador.
 
+---
+
+## Error 8: Llamar `SetUserPlaced(true)` en TargetFrame lanza error
+
+### Síntoma
+Aparece el error rojo: `ERROR: modules\layout.lua:XX: Frame TargetFrame is not movable or resizable`.
+
+### Causa Raíz
+Se usó `TargetFrame:SetUserPlaced(true)` al momento de definir su nueva ubicación en pantalla en la función de inicialización. Por defecto, los marcos base de la interfaz como `PlayerFrame`, `TargetFrame` o `FocusFrame` **no están marcados internamente como `movable`** (`frame:IsMovable() == false`) por Blizzard, y llamar `SetUserPlaced` sobre un marco inamovible lanza una excepción inmediata.
+
+### Intento de Solución (Fallido)
+Ignorar la excepción, lo que provocaba que el hook de `PLAYER_ENTERING_WORLD` abortara prematuramente e impidiera la ejecución del resto del código de rediseño (los estilos dejaban de cargar).
+
+### Solución Correcta
+**No llamar a `SetUserPlaced(true)` en marcos nativos a menos que les hagas `SetMovable(true)` previamente.** En nuestro caso, dado que ya estamos usando hooks en `TargetFrame_ResetPosition` para mantener nuestra posición forzada tras cambios de interfaz, basta con simplemente omitir la llamada a `SetUserPlaced(true)`.
+
+```lua
+    if TargetFrame then
+        TargetFrame:ClearAllPoints()
+        TargetFrame:SetPoint("BOTTOMLEFT", UIParent, "BOTTOM", 10, 160)
+        -- TargetFrame:SetUserPlaced(true) -- ELIMINADO para evitar crash
+    end
+```
+
+### Lección
+> **Nunca uses `SetUserPlaced(true)` en marcos creados por Blizzard sin confirmar primero que sean "Movable".** Si tu propio código de addon re-aplica sistemáticamente los anclajes visuales mediante hooks, no necesitas decirle a WoW que guarde la posición usando `SetUserPlaced`.
+

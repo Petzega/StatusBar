@@ -6,21 +6,62 @@ function ns.PositionTargetBuffs(self)
     local frameName = self:GetName()
     if frameName ~= "TargetFrame" and frameName ~= "FocusFrame" then return end
     
-    local buff1 = _G[frameName.."Buff1"]
-    local debuff1 = _G[frameName.."Debuff1"]
     local healthBar = _G[frameName.."HealthBar"]
+    if not healthBar then return end
+
+    local AURA_SIZE = 22
+    local SPACING = 2
+    local MAX_PER_ROW = math.floor(ns.BAR_WIDTH / (AURA_SIZE + SPACING))
     
-    if buff1 and healthBar then
-        buff1:ClearAllPoints()
-        buff1:SetPoint("BOTTOMLEFT", healthBar, "TOPLEFT", 2, 18)
-    end
-    if debuff1 and healthBar then
-        debuff1:ClearAllPoints()
-        if buff1 and buff1:IsShown() then
-            debuff1:SetPoint("BOTTOMLEFT", buff1, "TOPLEFT", 0, 5)
-        else
-            debuff1:SetPoint("BOTTOMLEFT", healthBar, "TOPLEFT", 2, 18)
+    local currentY = 18 -- Altura inicial por encima del nombre
+
+    -- Posicionar Buffs
+    local shownBuffs = 0
+    local buffIndex = 1
+    while _G[frameName.."Buff"..buffIndex] do
+        local buff = _G[frameName.."Buff"..buffIndex]
+        if buff:IsShown() then
+            buff:ClearAllPoints()
+            buff:SetSize(AURA_SIZE, AURA_SIZE) -- Estandarizar tamaño
+            
+            local col = shownBuffs % MAX_PER_ROW
+            local row = math.floor(shownBuffs / MAX_PER_ROW)
+            
+            local currentX = col * (AURA_SIZE + SPACING)
+            local yOffset = currentY + (row * (AURA_SIZE + SPACING))
+            
+            buff:SetPoint("BOTTOMLEFT", healthBar, "TOPLEFT", 2 + currentX, yOffset)
+            shownBuffs = shownBuffs + 1
         end
+        buffIndex = buffIndex + 1
+    end
+    
+    -- Calcular espacio para los debuffs
+    if shownBuffs > 0 then
+        local rowsUsed = math.ceil(shownBuffs / MAX_PER_ROW)
+        currentY = currentY + (rowsUsed * (AURA_SIZE + SPACING)) + 5 -- gap de 5px
+    end
+    
+    -- Posicionar Debuffs
+    local shownDebuffs = 0
+    local debuffIndex = 1
+    while _G[frameName.."Debuff"..debuffIndex] do
+        local debuff = _G[frameName.."Debuff"..debuffIndex]
+        if debuff:IsShown() then
+            debuff:ClearAllPoints()
+            debuff:SetSize(AURA_SIZE + 4, AURA_SIZE + 4) -- Debuffs ligeramente más grandes
+            
+            local col = shownDebuffs % MAX_PER_ROW
+            local row = math.floor(shownDebuffs / MAX_PER_ROW)
+            
+            -- Compensar el tamaño extra en el espaciado
+            local currentX = col * (AURA_SIZE + 4 + SPACING)
+            local yOffset = currentY + (row * (AURA_SIZE + 4 + SPACING))
+            
+            debuff:SetPoint("BOTTOMLEFT", healthBar, "TOPLEFT", 2 + currentX, yOffset)
+            shownDebuffs = shownDebuffs + 1
+        end
+        debuffIndex = debuffIndex + 1
     end
 end
 
@@ -29,19 +70,16 @@ function ns.RepositionFrames()
     if PlayerFrame then
         PlayerFrame:ClearAllPoints()
         PlayerFrame:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOM", -10, 160)
-        PlayerFrame:SetUserPlaced(true)
     end
     
     if TargetFrame then
         TargetFrame:ClearAllPoints()
         TargetFrame:SetPoint("BOTTOMLEFT", UIParent, "BOTTOM", 10, 160)
-        TargetFrame:SetUserPlaced(true)
     end
     
     if FocusFrame then
         FocusFrame:ClearAllPoints()
         FocusFrame:SetPoint("BOTTOMLEFT", TargetFrame, "TOPLEFT", 0, 45)
-        FocusFrame:SetUserPlaced(true)
     end
 end
 

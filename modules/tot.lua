@@ -84,8 +84,8 @@ function ns.InitCustomToT()
             cTotHPText:SetText("")
         end
 
-        local r, g, b = UnitSelectionColor("targettarget")
-        cTotHP:SetStatusBarColor(r, g, b)
+        -- Color de la barra de vida (verde por defecto)
+        cTotHP:SetStatusBarColor(0, 1, 0)
 
         local power = UnitPower("targettarget")
         local powerMax = UnitPowerMax("targettarget")
