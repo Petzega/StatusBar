@@ -302,3 +302,56 @@ Ignorar la excepción, lo que provocaba que el hook de `PLAYER_ENTERING_WORLD` a
 ### Lección
 > **Nunca uses `SetUserPlaced(true)` en marcos creados por Blizzard sin confirmar primero que sean "Movable".** Si tu propio código de addon re-aplica sistemáticamente los anclajes visuales mediante hooks, no necesitas decirle a WoW que guarde la posición usando `SetUserPlaced`.
 
+---
+
+## Error 9: Íconos de JcJ nativos invisibles por limpieza agresiva de texturas
+
+### Síntoma
+Los íconos de Horda/Alianza del Target y del Foco dejaron de renderizarse en pantalla, a pesar de usar `SetPoint` correctamente. El ícono del jugador sí se veía.
+
+### Causa Raíz
+La función utilitaria `ns.CleanDefaultTextures(frame)` recorría recursivamente todos los objetos de tipo `"Texture"` dentro de los TextureFrames de los marcos nativos, asignándoles `SetTexture(nil)` y `SetAlpha(0)` para ocultar el arte por defecto de Blizzard. Esto borraba silenciosamente los objetos `TargetFrameTextureFramePVPIcon` y `FocusFrameTextureFramePVPIcon`.
+
+### Solución Correcta
+Se añadieron exclusiones matemáticas y explícitas en el bucle iterativo para proteger objetos visuales vitales:
+```lua
+local isPVP = (region == PlayerPVPIcon) or (region == TargetFrameTextureFramePVPIcon) or (region == FocusFrameTextureFramePVPIcon)
+if not isPVP then
+    -- Ocultar textura...
+end
+```
+
+### Lección
+> **Nunca ejecutar una limpieza en bucle a ciegas.** Al limpiar la interfaz de WoW iterando sobre `GetRegions()`, siempre documenta y preserva (vía condicionales `if`) los frames/texturas nativas que usarás posteriormente para la UI, o la limpieza será destructiva.
+
+---
+
+## Error 10: Fondos cuadrados duros detrás de retratos con esquinas redondeadas
+
+### Síntoma
+Al reducir el recorte de la textura del retrato (`SetTexCoord(0.05, 0.95)`) para revelar las esquinas redondeadas nativas, unas puntas afiladas oscuras seguían asomándose por las esquinas del retrato.
+
+### Causa Raíz
+Se había asignado un `customBg` (textura gris muy oscura con 2px de margen) detrás de cada retrato para imitar el marco de las barras. Sin embargo, las texturas en WoW 3.3.5 no soportan "border-radius". El fondo era un cuadrado duro, y las esquinas transparentes redondeadas del retrato de adelante simplemente dejaban ver las puntas afiladas del cuadrado de atrás.
+
+### Solución Correcta
+Ocultar y eliminar completamente los fondos `customBg` de los retratos. El retrato con zoom (0.05) debe descansar directamente "desnudo" sobre la UI principal del juego; de ese modo, las esquinas transparentes mostrarán el terreno del juego 3D, creando una ilusión óptica perfecta de borde redondeado.
+
+### Lección
+> **No colocar fondos rectangulares oscuros detrás de texturas que requieren bordes suaves o redondeados por transparencia.** En UI flat, si una textura superior tiene esquinas suaves, su fondo no debe ser sólido si excede o iguala su tamaño.
+
+---
+
+## Error 11: Renderizado (Z-Index) cortado al superponer Barras y Retratos nativos
+
+### Síntoma
+Al poner un offset horizontal negativo para que el retrato se superpusiera con la barra de vida (creando un efecto de junte/suavizado), el motor de WoW dibujaba la barra de vida "cortando" por completo la imagen del retrato con una línea recta inestética.
+
+### Causa Raíz
+En el árbol jerárquico y motor de renderizado de WoW, los objetos tipo `Frame` (`StatusBar`, `PlayerFrameHealthBar`) siempre se dibujan en niveles de Z-Index (`FrameStrata` / `FrameLevel`) muy superiores a los de una textura básica (`PlayerPortrait` = `Texture`) que pertenece a un frame padre inferior.
+
+### Solución Correcta
+Se descartó la idea de solapamiento manual nativo, manteniendo el offset en `0` (separación de cero pixeles exactos). Al ser cajas de texturas en diferentes profundidades, se deben construir adjuntas una al lado de la otra sin sobreposición, y confiar en el diseño plano (Dota 2) para que se vean compactas.
+
+### Lección
+> **Los Frames nativos siempre cortarán visualmente a las Texturas simples en un superposición.** Evitar superponer elementos de distintos tipos (StatusBar vs Texture) para crear integraciones de diseño si no puedes reestructurar sus `FrameLevel`. Es mejor alinearlos con offset 0.

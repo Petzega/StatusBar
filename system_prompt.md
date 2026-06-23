@@ -93,3 +93,28 @@ Si vas a realizar modificaciones en este addon:
 4. Recuerda mantener la coherencia en las coordenadas: el PlayerFrame está a la izquierda (`-10` en X) y TargetFrame a la derecha (`10` en X) respecto al centro. El Foco está encima de TargetFrame. El ToT personalizado está anclado al costado derecho de `TargetFrameHealthBar`.
 5. **No intentes mover el `TargetFrameToT` nativo.** Es un Secure Unit Frame cuya posición y zona de clic son controladas internamente por WoW desde C++. Siempre usa el marco personalizado `StatusBar_CustomToT`.
 6. El lenguaje de comentarios preferido por el usuario en el código es el **Español**.
+
+---
+
+## 6. Guía Estética y Directrices Visuales (UI/UX)
+
+Para mantener la esencia plana, minimalista e inspirada en "Dota 2" del addon StatusBar, toda modificación de diseño o código debe respetar rigurosamente estas reglas visuales:
+
+* **Minimalismo de Bloques (Flat Design):**
+  - No usar bordes redondeados forzados ni marcos recargados. Las barras son bloques rígidos y oscuros con texturas sólidas (`dota_bar.tga`).
+  - Cada marco consiste solo en una barra de vida ancha y una barra de poder delgada adherida exactamente debajo, separadas por distancias mínimas (2 píxeles).
+
+* **Simetría y Equilibrio de los Retratos:**
+  - Los retratos son los anclajes principales del diseño.
+  - El retrato del **Jugador** se posiciona a la derecha de sus barras (mirando hacia el centro de la pantalla).
+  - Los retratos de los **Enemigos/Aliados (Objetivo, Foco, ToT)** se posicionan a la izquierda de sus barras (mirando inversamente hacia el jugador usando el flag `flipX` en el SetTexCoord).
+  - **Altura:** Los retratos no se centran solo respecto a la barra de salud, sino al **bloque completo** (Vida + Maná). Por esto usan offsets verticales manuales (ej. `-10` o `-5`).
+
+* **Ley de Proporcionalidad del Retrato:**
+  - El tamaño (Scale/Size) del retrato cuadrado siempre debe ser **el doble (2x) de la altura sumada de sus barras de vida y maná**. Por ejemplo, barras principales suman 34px -> Retrato 68px. Barras del ToT suman 21px -> Retrato 42px.
+  - Para simular un ligero borde redondeado, se aplica un zoom mínimo a la textura del retrato (`TexCoord 0.05 a 0.95`), permitiendo asomar la opacidad nativa de las esquinas del círculo base de WoW. Por ende, **los retratos nunca llevan fondo custom (`customBg`)**, ya que el fondo cuadrado sobresale tras las esquinas transparentes.
+
+* **Posicionamiento Diagonal de Información Adicional (Badge vs PvP):**
+  - La información de superposición de las fotos se ubica en las **esquinas inferiores opuestas**, apoyándose sutilmente donde la imagen intersecta con la barra de vida.
+  - Si el **Nivel** (badge dorado) está anclado a la esquina inferior *interna* (`BOTTOMLEFT` en Target), el **Ícono JcJ** (Horda/Alianza) se ubicará diametralmente en el mismo eje horizontal pero en la esquina opuesta (`BOTTOMRIGHT` en Target).
+  - Mantener todos los textos legibles, usar fuente uniforme `FRIZQT__.TTF` con borde exterior `OUTLINE`.
