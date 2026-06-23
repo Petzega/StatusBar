@@ -106,6 +106,7 @@ function ns.CustomStyleFrames()
     if PlayerFrame then
         PlayerFrame:SetWidth(ns.BAR_WIDTH)
         PlayerFrame:SetHeight(ns.HEALTH_HEIGHT + ns.MANA_HEIGHT + 2)
+        PlayerFrame:SetHitRectInsets(0, 0, 0, 0)
     end
     
     if PlayerFrameHealthBar then
@@ -147,6 +148,7 @@ function ns.CustomStyleFrames()
     if TargetFrame then
         TargetFrame:SetWidth(ns.BAR_WIDTH)
         TargetFrame:SetHeight(ns.HEALTH_HEIGHT + ns.MANA_HEIGHT + 2)
+        TargetFrame:SetHitRectInsets(0, 0, 0, 0)
     end
     
     if TargetFrameHealthBar then
@@ -199,6 +201,7 @@ function ns.CustomStyleFrames()
     if FocusFrame then
         FocusFrame:SetWidth(ns.BAR_WIDTH)
         FocusFrame:SetHeight(ns.HEALTH_HEIGHT + ns.MANA_HEIGHT + 2)
+        FocusFrame:SetHitRectInsets(0, 0, 0, 0)
     end
     
     if FocusFrameHealthBar then
@@ -221,4 +224,84 @@ function ns.CustomStyleFrames()
     ns.ApplyCustomBackground(FocusFrame, FocusFrameHealthBar, FocusFrameManaBar, ns.BAR_WIDTH)
     
     ns.AlignFocusTexts()
+    ns.StyleComboPoints()
 end
+
+-- Función para dar estilo a los Puntos de Combo (Arco limpio sobre el retrato)
+function ns.StyleComboPoints()
+    if not ComboFrame then return end
+    
+    local CP_SIZE = 14
+    local RADIUS = 40
+    
+    -- Ángulos para un arco superior (130 grados a 50 grados, un poco más separados)
+    local angles = {
+        math.rad(130),
+        math.rad(110),
+        math.rad(90),
+        math.rad(70),
+        math.rad(50)
+    }
+    
+    if ComboFrameBackground then ComboFrameBackground:Hide() end
+    
+    for i = 1, 5 do
+        local cp = _G["ComboPoint"..i]
+        if cp then
+            cp:SetSize(CP_SIZE, CP_SIZE)
+            
+            local bg = _G["ComboPoint"..i.."BG"]
+            local highlight = _G["ComboPoint"..i.."Highlight"]
+            local tex = _G["ComboPoint"..i.."ComboPoint"]
+            
+            if cp.customTex then cp.customTex:Hide() end
+            if cp.customBg then cp.customBg:Hide() end
+            if cp.bgBorder then cp.bgBorder:Hide() end
+            
+            -- Estado Desactivado (Socket circular PERFECTAMENTE LIMPIO)
+            if bg and bg.SetTexture then 
+                -- UI-Minimap-Background es un círculo sólido y perfecto sin bordes dentados
+                bg:SetTexture("Interface\\Minimap\\UI-Minimap-Background")
+                bg:SetVertexColor(0, 0, 0, 0.7) -- Negro transparente limpio
+                bg:SetAlpha(1)
+                bg:Show()
+                bg:SetAllPoints(cp)
+            end
+            
+            -- Brillo de ganancia
+            if highlight and highlight.SetTexture then 
+                highlight:SetTexture("Interface\\ComboFrame\\ComboPoint")
+                highlight:SetBlendMode("ADD")
+                highlight:SetVertexColor(1, 1, 1, 0.5) 
+                highlight:SetAllPoints(cp)
+            end
+            
+            -- Estado Activo (Orbe rojo nativo)
+            if tex and tex.SetTexture then 
+                tex:SetTexture("Interface\\ComboFrame\\ComboPoint")
+                tex:SetVertexColor(1, 1, 1, 1) -- Color rojo original y limpio
+                tex:SetAlpha(1)
+                tex:Show()
+                tex:SetAllPoints(cp)
+            end
+            
+            cp:ClearAllPoints()
+            local offsetX = RADIUS * math.cos(angles[i])
+            local offsetY = RADIUS * math.sin(angles[i])
+            cp:SetPoint("CENTER", ComboFrame, "CENTER", offsetX, offsetY)
+        end
+    end
+    
+    if not ns.comboHooked then
+        ns.comboHooked = true
+        hooksecurefunc("ComboFrame_Update", function()
+            if ComboFrame and TargetFramePortrait then
+                ComboFrame:ClearAllPoints()
+                -- Anclamos el marco base al centro del retrato del Objetivo
+                ComboFrame:SetPoint("CENTER", TargetFramePortrait, "CENTER", 0, 0)
+                ComboFrame:SetSize(1, 1)
+            end
+        end)
+    end
+end
+

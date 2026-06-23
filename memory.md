@@ -50,3 +50,11 @@ El diseño exige **simetría**. El ícono de JcJ siempre se ancla en la esquina 
   * **Archivo:** `utils/helpers.lua` -> `ns.CleanDefaultTextures`.
   * Este bucle oculta iterativamente todos los marcos y bordes artísticos antiguos de Blizzard. 
   * **Cuidado:** Si un ícono original de WoW que necesitamos (ej. JcJ, Portrait, etc.) desaparece por accidente, debes añadirlo como una "excepción" dentro del bucle (`isPVP` / `isPortrait`) para que el limpiador lo ignore.
+
+## 6. Puntos de Combo (Arco sobre el retrato)
+* **Archivo:** `modules/layout.lua` -> Función `ns.StyleComboPoints`.
+* **Disposición y Forma:** Se organizan matemáticamente en un arco superior de 5 puntos (desde los 130 hasta los 50 grados) orbitando sobre el retrato del objetivo (`TargetFramePortrait`).
+* **Texturas Nativas:**
+  * **Socket Vacío (Desactivado):** Se utiliza `Interface\Minimap\UI-Minimap-Background` teñido de negro transparente (`0, 0, 0, 0.7`) para generar un círculo sólido y perfecto sin bordes dentados (evitando teñir texturas con glow).
+  * **Punto Activo:** Se reutiliza `Interface\ComboFrame\ComboPoint` conservando su resplandor rojo original.
+* **Anclaje:** El marco padre (`ComboFrame`) se reduce artificialmente a un tamaño de `1x1` y se ancla en el centro de la foto del objetivo, posicionando radialmente a los hijos. Esto evita generar colisiones invisibles gigantes que bloqueen los clics del usuario.

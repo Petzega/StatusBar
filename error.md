@@ -355,3 +355,48 @@ Se descartó la idea de solapamiento manual nativo, manteniendo el offset en `0`
 
 ### Lección
 > **Los Frames nativos siempre cortarán visualmente a las Texturas simples en un superposición.** Evitar superponer elementos de distintos tipos (StatusBar vs Texture) para crear integraciones de diseño si no puedes reestructurar sus `FrameLevel`. Es mejor alinearlos con offset 0.
+
+---
+
+## Error 12: Zona muerta (no clickeable) en el primer cuarto del TargetFrame ampliado
+
+### Síntoma
+Tras modificar el ancho del `TargetFrame` a 320 píxeles, la zona izquierda de la barra (aproximadamente el primer 25% o 30%) ignoraba todos los clics del ratón y no mostraba tooltips. Solo la mitad derecha de la barra respondía al ratón. El `PlayerFrame` funcionaba correctamente en toda su extensión.
+
+### Causa Raíz
+Los marcos unitarios nativos de WoW usan la propiedad `HitRectInsets` para recortar su área de colisión física respecto a su tamaño total. En la interfaz original, la textura de `TargetFrame` tiene el retrato a la derecha y gran parte del lado izquierdo es relleno transparente, por lo que Blizzard configuró un inset interno de `left = 96` (o similar) para que ese vacío no intercepte clics.
+Al usar `SetWidth(320)` sin reiniciar estos recortes, el motor de WoW seguía descartando los primeros ~96 píxeles de nuestra nueva barra, creando la zona muerta.
+
+### Solución Correcta
+Reiniciar los insets a 0 en el código de layout justo después de fijar el ancho y alto personalizados, para garantizar que la caja de colisión coincida exactamente con las dimensiones visuales:
+```lua
+TargetFrame:SetWidth(ns.BAR_WIDTH)
+TargetFrame:SetHeight(ns.HEALTH_HEIGHT + ns.MANA_HEIGHT + 2)
+TargetFrame:SetHitRectInsets(0, 0, 0, 0)
+```
+
+### Lección
+> **Siempre que cambies el tamaño (`SetSize`, `SetWidth`) de un marco base de Blizzard (PlayerFrame, TargetFrame, etc.) para que todo el marco sea clickeable, recuerda limpiar sus recortes nativos usando `SetHitRectInsets(0, 0, 0, 0)`.** De lo contrario, heredarás las zonas muertas de la interfaz original.
+
+## Error 13: Bordes dentados (corona de espinas) al oscurecer texturas con resplandor
+
+### Síntoma
+Al intentar crear un fondo oscuro ("socket vacío") para los Puntos de Combo usando la textura nativa `Interface\ComboFrame\ComboPoint` teñida de negro (`SetVertexColor(0, 0, 0, 0.8)`), el resultado visual fue un marco con bordes irregulares y puntiagudos que ensuciaban la interfaz, luciendo como una "corona de espinas".
+
+### Causa Raíz
+La textura nativa de `ComboPoint` no es un círculo plano perfecto; posee un gradiente exterior que simula un resplandor (glow). Al teñir la textura de negro, ese resplandor exterior también se tiñe de negro opaco, perdiendo su fusión visual con el entorno. Esto revela artefactos dentados y una forma irregular que normalmente es imperceptible con su color rojo brillante nativo.
+
+### Solución Correcta
+Para crear fondos oscuros o *sockets* con forma de círculo limpio, es obligatorio usar una textura que sea un círculo plano perfecto en su código alfa, sin "suavizados" exteriores simulados. La textura interna `Interface\Minimap\UI-Minimap-Background` de World of Warcraft es perfecta para este propósito.
+
+```lua
+local bg = _G["ComboPoint"..i.."BG"]
+-- UI-Minimap-Background ofrece un círculo sólido y liso, sin bordes raros
+bg:SetTexture("Interface\\Minimap\\UI-Minimap-Background")
+bg:SetVertexColor(0, 0, 0, 0.7) 
+bg:SetAlpha(1)
+bg:Show()
+```
+
+### Lección
+> **Nunca uses colores oscuros opacos sobre texturas diseñadas con resplandores exteriores (glow).** Si necesitas formas primitivas perfectas (como un círculo limpio) en la UI nativa, utiliza `Interface\Minimap\UI-Minimap-Background` o texturas sólidas en lugar de reciclar indicadores brillantes que destruyen la estética al invertirse sus colores.
