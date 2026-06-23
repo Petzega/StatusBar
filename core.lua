@@ -96,51 +96,76 @@ local function ApplyCustomBackground(parentFrame, topAnchor, bottomAnchor, barWi
     parentFrame.customBg:SetPoint("BOTTOMRIGHT", bottomAnchor, "BOTTOMRIGHT", 2, -2)
 end
 
+local lockingTexts = {}
+
+-- Función para estandarizar la fuente, tamaño y estilo de los textos de las barras
+local function StandardizeText(textString, parentBar)
+    if not textString or not parentBar then return end
+    
+    -- Usamos la fuente estándar de WoW, tamaño 11, con contorno (OUTLINE) grueso para alta legibilidad
+    textString:SetFont("Fonts\\FRIZQT__.TTF", 11, "OUTLINE")
+    textString:SetTextColor(1, 1, 1, 1)
+    textString:SetShadowOffset(0, 0)
+    textString:SetWidth(0)               -- Elimina cualquier ancho fijo para evitar desalineaciones
+    textString:SetJustifyH("CENTER")     -- Justificación al centro absoluto
+    
+    -- Bloquear posición al centro absoluto de su barra correspondiente para evitar que WoW lo mueva
+    if not lockingTexts[textString] then
+        lockingTexts[textString] = true
+        local isLocking = false
+        hooksecurefunc(textString, "SetPoint", function(self)
+            if isLocking then return end
+            isLocking = true
+            self:ClearAllPoints()
+            self:SetPoint("CENTER", parentBar, "CENTER", 0, 0)
+            isLocking = false
+        end)
+    end
+    
+    -- Aplicamos la posición inicialmente
+    textString:ClearAllPoints()
+    textString:SetPoint("CENTER", parentBar, "CENTER", 0, 0)
+end
+
 -- Función para alinear los textos del Objetivo
 local function AlignTargetTexts()
-    if TargetFrameHealthBarText then
-        TargetFrameHealthBarText:ClearAllPoints()
-        TargetFrameHealthBarText:SetPoint("CENTER", TargetFrameHealthBar, "CENTER", 0, 0)
-        TargetFrameHealthBarText:SetFontObject(SystemFont_Outline_Small)
-        TargetFrameHealthBarText:Show()
+    local hpText = TargetFrameHealthBar and TargetFrameHealthBar.TextString or TargetFrameTextureFrameHealthBarText
+    local manaText = TargetFrameManaBar and TargetFrameManaBar.TextString or TargetFrameTextureFrameManaBarText
+    if hpText then
+        StandardizeText(hpText, TargetFrameHealthBar)
+        hpText:Show()
     end
-    if TargetFrameManaBarText then
-        TargetFrameManaBarText:ClearAllPoints()
-        TargetFrameManaBarText:SetPoint("CENTER", TargetFrameManaBar, "CENTER", 0, 0)
-        TargetFrameManaBarText:SetFontObject(SystemFont_Outline_Small)
-        TargetFrameManaBarText:Show()
+    if manaText then
+        StandardizeText(manaText, TargetFrameManaBar)
+        manaText:Show()
     end
 end
 
 -- Función para alinear los textos del Foco
 local function AlignFocusTexts()
-    if FocusFrameHealthBarText then
-        FocusFrameHealthBarText:ClearAllPoints()
-        FocusFrameHealthBarText:SetPoint("CENTER", FocusFrameHealthBar, "CENTER", 0, 0)
-        FocusFrameHealthBarText:SetFontObject(SystemFont_Outline_Small)
-        FocusFrameHealthBarText:Show()
+    local hpText = FocusFrameHealthBar and FocusFrameHealthBar.TextString or FocusFrameTextureFrameHealthBarText
+    local manaText = FocusFrameManaBar and FocusFrameManaBar.TextString or FocusFrameTextureFrameManaBarText
+    if hpText then
+        StandardizeText(hpText, FocusFrameHealthBar)
+        hpText:Show()
     end
-    if FocusFrameManaBarText then
-        FocusFrameManaBarText:ClearAllPoints()
-        FocusFrameManaBarText:SetPoint("CENTER", FocusFrameManaBar, "CENTER", 0, 0)
-        FocusFrameManaBarText:SetFontObject(SystemFont_Outline_Small)
-        FocusFrameManaBarText:Show()
+    if manaText then
+        StandardizeText(manaText, FocusFrameManaBar)
+        manaText:Show()
     end
 end
 
 -- Función para alinear los textos del Jugador
 local function AlignPlayerTexts()
-    if PlayerFrameHealthBarText then
-        PlayerFrameHealthBarText:ClearAllPoints()
-        PlayerFrameHealthBarText:SetPoint("CENTER", PlayerFrameHealthBar, "CENTER", 0, 0)
-        PlayerFrameHealthBarText:SetFontObject(SystemFont_Outline_Small)
-        PlayerFrameHealthBarText:Show()
+    local hpText = PlayerFrameHealthBar and PlayerFrameHealthBar.TextString or PlayerFrameHealthBarText
+    local manaText = PlayerFrameManaBar and PlayerFrameManaBar.TextString or PlayerFrameManaBarText
+    if hpText then
+        StandardizeText(hpText, PlayerFrameHealthBar)
+        hpText:Show()
     end
-    if PlayerFrameManaBarText then
-        PlayerFrameManaBarText:ClearAllPoints()
-        PlayerFrameManaBarText:SetPoint("CENTER", PlayerFrameManaBar, "CENTER", 0, 0)
-        PlayerFrameManaBarText:SetFontObject(SystemFont_Outline_Small)
-        PlayerFrameManaBarText:Show()
+    if manaText then
+        StandardizeText(manaText, PlayerFrameManaBar)
+        manaText:Show()
     end
 end
 
