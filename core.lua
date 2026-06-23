@@ -99,11 +99,12 @@ end
 local lockingTexts = {}
 
 -- Función para estandarizar la fuente, tamaño y estilo de los textos de las barras
-local function StandardizeText(textString, parentBar)
+local function StandardizeText(textString, parentBar, fontSize)
     if not textString or not parentBar then return end
     
-    -- Usamos la fuente estándar de WoW, tamaño 11, con contorno (OUTLINE) grueso para alta legibilidad
-    textString:SetFont("Fonts\\FRIZQT__.TTF", 11, "OUTLINE")
+    fontSize = fontSize or 11
+    -- Usamos la fuente estándar de WoW, con contorno (OUTLINE) grueso para alta legibilidad
+    textString:SetFont("Fonts\\FRIZQT__.TTF", fontSize, "OUTLINE")
     textString:SetTextColor(1, 1, 1, 1)
     textString:SetShadowOffset(0, 0)
     textString:SetWidth(0)               -- Elimina cualquier ancho fijo para evitar desalineaciones
@@ -311,19 +312,22 @@ local function CustomStyleFrames()
     end
     AlignTargetTexts()
     PositionTargetBuffs()
-
     -- --- TARGET OF TARGET (Objetivo del Objetivo) ---
     if TargetFrameToT then
         CleanDefaultTextures(TargetFrameToT)
         SafeHide(TargetFrameToTPortrait)
         
-        local TOT_WIDTH = 120
+        local TOT_WIDTH = 180
         local TOT_HEALTH_HEIGHT = 14
         local TOT_MANA_HEIGHT = 6
         
+        TargetFrameToT:SetWidth(TOT_WIDTH)
+        TargetFrameToT:SetHeight(TOT_HEALTH_HEIGHT + TOT_MANA_HEIGHT + 2)
+        if TargetFrameToTTextureFrame then TargetFrameToTTextureFrame:EnableMouse(false) end
+        
         if TargetFrameToTHealthBar then
             TargetFrameToTHealthBar:ClearAllPoints()
-            TargetFrameToTHealthBar:SetPoint("TOPLEFT", TargetFrameToT, "TOPLEFT", 0, 0)
+            TargetFrameToTHealthBar:SetPoint("TOPLEFT", TargetFrameToT, "TOPLEFT", 225, 15)
             TargetFrameToTHealthBar:SetWidth(TOT_WIDTH)
             TargetFrameToTHealthBar:SetHeight(TOT_HEALTH_HEIGHT)
             TargetFrameToTHealthBar:EnableMouse(false)
@@ -346,6 +350,7 @@ local function CustomStyleFrames()
         if TargetFrameToTTextureFrameName then
             TargetFrameToTTextureFrameName:ClearAllPoints()
             TargetFrameToTTextureFrameName:SetPoint("BOTTOMLEFT", TargetFrameToTHealthBar, "TOPLEFT", 2, 2)
+            TargetFrameToTTextureFrameName:SetJustifyH("LEFT")
         end
     end
 
@@ -392,6 +397,64 @@ local function CustomStyleFrames()
     AlignFocusTexts()
 end
 
+-- Función para actualizar textos del ToT (Nivel, Vida y Maná/Energía)
+local function UpdateToTTexts()
+    if not TargetFrameToT or not TargetFrameToT:IsShown() then return end
+    
+    -- 1. Nivel del ToT
+    local level = UnitLevel("targettarget")
+    local name = UnitName("targettarget")
+    if name and TargetFrameToTTextureFrameName then
+        local levelText
+        if level and level > 0 then
+            levelText = tostring(level)
+        elseif level == -1 then
+            levelText = "??"
+        end
+        
+        if levelText then
+            TargetFrameToTTextureFrameName:SetText(name .. " " .. levelText)
+        else
+            TargetFrameToTTextureFrameName:SetText(name)
+        end
+    end
+    
+    -- 2. Valores de Vida
+    if TargetFrameToTHealthBar then
+        local hp = UnitHealth("targettarget")
+        local hpMax = UnitHealthMax("targettarget")
+        if not TargetFrameToTHealthBar.TextString then
+            TargetFrameToTHealthBar.TextString = TargetFrameToTHealthBar:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+            StandardizeText(TargetFrameToTHealthBar.TextString, TargetFrameToTHealthBar, 10)
+        end
+        if hpMax > 0 then
+            TargetFrameToTHealthBar.TextString:SetText(hp .. " / " .. hpMax)
+        else
+            TargetFrameToTHealthBar.TextString:SetText("")
+        end
+        TargetFrameToTHealthBar.TextString:Show()
+    end
+    
+    -- 3. Valores de Poder (Maná, Ira, Energía, Poder Rúnico)
+    if TargetFrameToTManaBar then
+        local power = UnitPower("targettarget")
+        local powerMax = UnitPowerMax("targettarget")
+        if not TargetFrameToTManaBar.TextString then
+            TargetFrameToTManaBar.TextString = TargetFrameToTManaBar:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+            StandardizeText(TargetFrameToTManaBar.TextString, TargetFrameToTManaBar, 8)
+        end
+        if powerMax > 0 then
+            TargetFrameToTManaBar.TextString:SetText(power .. " / " .. powerMax)
+        else
+            TargetFrameToTManaBar.TextString:SetText("")
+        end
+        TargetFrameToTManaBar.TextString:Show()
+    end
+end
+
+-- Flag para evitar loops infinitos
+local totHooked = false
+
 -- Función para reposicionar los marcos debajo del personaje
 local function RepositionFrames()
     if PlayerFrame then
@@ -412,10 +475,19 @@ local function RepositionFrames()
         FocusFrame:SetUserPlaced(true)
     end
     
-    -- Posicionamos el ToT (Objetivo del Objetivo) a la derecha
-    if TargetFrameToT then
+    -- Posicionamos el ToT (Objetivo del Objetivo) a la derecha de la barra del objetivo
+    if TargetFrameToT and TargetFrame then
+        if not totHooked then
+            totHooked = true
+            hooksecurefunc(TargetFrameToT, "SetPoint", function(self, point, relativeTo, relativePoint, x, y)
+                if x ~= 390 or y ~= 100 or point ~= "BOTTOMLEFT" then
+                    self:ClearAllPoints()
+                    self:SetPoint("BOTTOMLEFT", TargetFrame, "BOTTOMRIGHT", 390, 100)
+                end
+            end)
+        end
         TargetFrameToT:ClearAllPoints()
-        TargetFrameToT:SetPoint("BOTTOMLEFT", TargetFrame, "BOTTOMRIGHT", 250, 100)
+        TargetFrameToT:SetPoint("BOTTOMLEFT", TargetFrame, "BOTTOMRIGHT", 390, 100)
         TargetFrameToT:SetUserPlaced(true)
     end
 end
@@ -447,17 +519,24 @@ frame:SetScript("OnEvent", function(self, event, ...)
         hooksecurefunc("FocusFrame_UpdateTextString", AlignFocusTexts)
         hooksecurefunc("PlayerFrame_UpdateTextString", AlignPlayerTexts)
         
-        hooksecurefunc("TargetFrame_UpdateAuras", PositionTargetBuffs)
-        hooksecurefunc("TargetFrame_UpdateAuraPositions", PositionTargetBuffs)
+        hooksecurefunc("TargetFrame_UpdateAuras", function(self)
+            PositionTargetBuffs(self)
+            RepositionFrames()
+        end)
+        hooksecurefunc("TargetFrame_UpdateAuraPositions", function(self)
+            PositionTargetBuffs(self)
+            RepositionFrames()
+        end)
         
         hooksecurefunc("PlayerFrame_ResetPosition", RepositionFrames)
         hooksecurefunc("TargetFrame_ResetPosition", RepositionFrames)
         
         -- Hook seguro para mover el ToT cada vez que el juego lo actualice
-        hooksecurefunc("TargetFrameToT_Update", function()
+        hooksecurefunc("TargetFrameToT_Update", function(self)
             RepositionFrames()
             CustomStyleFrames()
             ApplyBarTextures()
+            UpdateToTTexts()
         end)
     end
 end)
