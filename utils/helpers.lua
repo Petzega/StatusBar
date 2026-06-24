@@ -3,7 +3,7 @@ local addonName, ns = ...
 -- Función para ocultar de forma segura texturas/iconos nativos de WoW sin causar errores de Lua
 function ns.SafeHide(tex)
     if tex then
-        tex:SetTexture(nil)
+        if tex.SetTexture then tex:SetTexture(nil) end
         tex:SetAlpha(0)
         tex:Hide()
     end
@@ -117,8 +117,20 @@ function ns.StylePortrait(anchorBar, portrait, point, relativePoint, offsetX, si
     portrait:SetDrawLayer("ARTWORK")
     portrait:Show()
     
-    -- Ocultar fondo oscuro cuadrado que arruina las esquinas redondeadas
+    -- Ocultar fondo oscuro antiguo si existe
     if portrait.customBg then
         portrait.customBg:Hide()
     end
+    
+    -- Crear un marco de borde moderno
+    if not portrait.bgBorder then
+        portrait.bgBorder = portrait:GetParent():CreateTexture(nil, "BACKGROUND")
+        portrait.bgBorder:SetTexture("Interface\\ChatFrame\\ChatFrameBackground")
+        portrait.bgBorder:SetVertexColor(0, 0, 0, 0.9) -- Borde negro limpio
+    end
+    
+    portrait.bgBorder:ClearAllPoints()
+    portrait.bgBorder:SetPoint("TOPLEFT", portrait, "TOPLEFT", -2, 2)
+    portrait.bgBorder:SetPoint("BOTTOMRIGHT", portrait, "BOTTOMRIGHT", 2, -2)
+    portrait.bgBorder:Show()
 end

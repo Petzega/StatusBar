@@ -400,3 +400,35 @@ bg:Show()
 
 ### Lección
 > **Nunca uses colores oscuros opacos sobre texturas diseñadas con resplandores exteriores (glow).** Si necesitas formas primitivas perfectas (como un círculo limpio) en la UI nativa, utiliza `Interface\Minimap\UI-Minimap-Background` o texturas sólidas en lugar de reciclar indicadores brillantes que destruyen la estética al invertirse sus colores.
+
+---
+
+## Error 14: Retratos no clickeables tras reducir el ancho del marco padre
+
+### Síntoma
+Al hacer clic en el retrato de cualquier marco (Jugador, Objetivo, Foco o ToT), el clic era ignorado y atravesaba hacia el mundo 3D subyacente.
+
+### Causa Raíz
+Se ajustó el tamaño de los marcos principales (`SetWidth` y `SetHeight`) para que abarcaran exactamente el área de las barras de vida y maná. Como los retratos se anclaron visualmente *por fuera* de estas barras (con offsets horizontales), quedaron físicamente fuera del área interactiva (HitBox) del marco.
+
+### Solución Correcta
+Se empleó la función nativa `SetHitRectInsets(left, right, top, bottom)` utilizando valores **negativos** para expandir la caja de colisión invisible y que "tragara" a los retratos. Por ejemplo, si el retrato del jugador está a la derecha, se usa `PlayerFrame:SetHitRectInsets(0, -70, -20, -20)`.
+
+### Lección
+> **Si posicionas elementos interactivos por fuera de los límites de tamaño (SetWidth/SetHeight) de su marco padre, estos no registrarán clics.** Siempre usa `SetHitRectInsets` con valores negativos para expandir la caja de colisión y cubrir dichos elementos.
+
+---
+
+## Error 15: Beneficios del Foco invadiendo el marco del Jugador
+
+### Síntoma
+Los íconos de los buffs y debuffs del marco de Foco se extendían horizontalmente invadiendo el retrato y barras del marco del Jugador en lugar de subir a la siguiente fila.
+
+### Causa Raíz
+La lógica de posicionamiento de buffs (`ns.PositionTargetBuffs`) utilizaba una constante global `ns.BAR_WIDTH` (320px) para determinar cuántos íconos cabían en una fila antes de hacer un salto de línea (wrap). Dado que el Foco se rediseñó para tener un ancho menor (180px) pero seguía usando la misma regla de 320px, los íconos continuaban dibujándose a lo largo hasta tapar la UI central.
+
+### Solución Correcta
+Modificar la lógica de salto de línea para que lea el ancho en tiempo real de la barra contenedora correspondiente: `local currentWidth = healthBar:GetWidth()`. Esto permite usar la misma función en distintos marcos independientemente de su tamaño.
+
+### Lección
+> **Nunca uses anchos "hardcodeados" globales para la disposición (layout) de cuadrículas o wrapping.** Siempre extrae el ancho dinámico del contenedor padre (`GetWidth()`) para que el código soporte automáticamente marcos redimensionados.

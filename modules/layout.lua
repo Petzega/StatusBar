@@ -1,6 +1,5 @@
 local addonName, ns = ...
 
--- Función para posicionar los beneficios (buffs) del Objetivo y Foco
 function ns.PositionTargetBuffs(self)
     if not self then self = TargetFrame end
     local frameName = self:GetName()
@@ -11,7 +10,13 @@ function ns.PositionTargetBuffs(self)
 
     local AURA_SIZE = 22
     local SPACING = 2
-    local MAX_PER_ROW = math.floor(ns.BAR_WIDTH / (AURA_SIZE + SPACING))
+    local currentWidth = healthBar:GetWidth() or ns.BAR_WIDTH
+    
+    local MAX_BUFFS_PER_ROW = math.floor(currentWidth / (AURA_SIZE + SPACING))
+    if MAX_BUFFS_PER_ROW < 1 then MAX_BUFFS_PER_ROW = 1 end
+    
+    local MAX_DEBUFFS_PER_ROW = math.floor(currentWidth / (AURA_SIZE + 4 + SPACING))
+    if MAX_DEBUFFS_PER_ROW < 1 then MAX_DEBUFFS_PER_ROW = 1 end
     
     local currentY = 18 -- Altura inicial por encima del nombre
 
@@ -24,8 +29,8 @@ function ns.PositionTargetBuffs(self)
             buff:ClearAllPoints()
             buff:SetSize(AURA_SIZE, AURA_SIZE) -- Estandarizar tamaño
             
-            local col = shownBuffs % MAX_PER_ROW
-            local row = math.floor(shownBuffs / MAX_PER_ROW)
+            local col = shownBuffs % MAX_BUFFS_PER_ROW
+            local row = math.floor(shownBuffs / MAX_BUFFS_PER_ROW)
             
             local currentX = col * (AURA_SIZE + SPACING)
             local yOffset = currentY + (row * (AURA_SIZE + SPACING))
@@ -38,7 +43,7 @@ function ns.PositionTargetBuffs(self)
     
     -- Calcular espacio para los debuffs
     if shownBuffs > 0 then
-        local rowsUsed = math.ceil(shownBuffs / MAX_PER_ROW)
+        local rowsUsed = math.ceil(shownBuffs / MAX_BUFFS_PER_ROW)
         currentY = currentY + (rowsUsed * (AURA_SIZE + SPACING)) + 5 -- gap de 5px
     end
     
@@ -51,8 +56,8 @@ function ns.PositionTargetBuffs(self)
             debuff:ClearAllPoints()
             debuff:SetSize(AURA_SIZE + 4, AURA_SIZE + 4) -- Debuffs ligeramente más grandes
             
-            local col = shownDebuffs % MAX_PER_ROW
-            local row = math.floor(shownDebuffs / MAX_PER_ROW)
+            local col = shownDebuffs % MAX_DEBUFFS_PER_ROW
+            local row = math.floor(shownDebuffs / MAX_DEBUFFS_PER_ROW)
             
             -- Compensar el tamaño extra en el espaciado
             local currentX = col * (AURA_SIZE + 4 + SPACING)
@@ -79,7 +84,8 @@ function ns.RepositionFrames()
     
     if FocusFrame then
         FocusFrame:ClearAllPoints()
-        FocusFrame:SetPoint("BOTTOMLEFT", TargetFrame, "TOPLEFT", 0, 45)
+        -- Anclado a la izquierda del jugador, con la misma separación y altura que el ToT
+        FocusFrame:SetPoint("TOPRIGHT", PlayerFrameHealthBar, "TOPLEFT", -10, ns.TOT_ANCHOR_Y)
     end
 end
 
@@ -91,6 +97,26 @@ function ns.CustomStyleFrames()
     ns.SafeHide(PlayerFrameFlash)
     ns.SafeHide(PlayerStatusTexture)
     ns.SafeHide(PlayerRestGlow)
+    ns.SafeHide(PlayerAttackBackground)
+    ns.SafeHide(PlayerAttackGlow)
+    ns.SafeHide(PlayerStatusGlow)
+    
+    -- Ocultar permanentemente la pestaña de Grupo de Banda
+    if PlayerFrameGroupIndicator then
+        PlayerFrameGroupIndicator:SetAlpha(0)
+        if not PlayerFrameGroupIndicator.isKilled then
+            PlayerFrameGroupIndicator.isKilled = true
+            hooksecurefunc(PlayerFrameGroupIndicator, "Show", function(self) self:Hide() end)
+        end
+        PlayerFrameGroupIndicator:Hide()
+    end
+    
+    if PlayerFrameVehicleTexture and not PlayerFrameVehicleTexture.isKilled then
+        PlayerFrameVehicleTexture.isKilled = true
+        PlayerFrameVehicleTexture:SetAlpha(0)
+        hooksecurefunc(PlayerFrameVehicleTexture, "Show", function(self) self:Hide() end)
+        hooksecurefunc(PlayerFrameVehicleTexture, "SetTexture", function(self) self:SetAlpha(0) end)
+    end
     
     ns.CleanDefaultTextures(PlayerFrame)
     -- Jugador: Separación limpia para evitar que la barra corte la imagen
@@ -106,7 +132,7 @@ function ns.CustomStyleFrames()
     if PlayerFrame then
         PlayerFrame:SetWidth(ns.BAR_WIDTH)
         PlayerFrame:SetHeight(ns.HEALTH_HEIGHT + ns.MANA_HEIGHT + 2)
-        PlayerFrame:SetHitRectInsets(0, 0, 0, 0)
+        PlayerFrame:SetHitRectInsets(0, -70, -20, -20) -- Expandir hitbox a la derecha y verticalmente para el retrato
     end
     
     if PlayerFrameHealthBar then
@@ -116,6 +142,20 @@ function ns.CustomStyleFrames()
         PlayerFrameHealthBar:SetHeight(ns.HEALTH_HEIGHT)
         PlayerFrameHealthBar:EnableMouse(false)
         ns.ClearBarBackgrounds(PlayerFrameHealthBar)
+        
+        -- Bloquear dimensiones para que el vehículo no lo achique
+        if not PlayerFrameHealthBar.isLocked then
+            PlayerFrameHealthBar.isLocked = true
+            hooksecurefunc(PlayerFrameHealthBar, "SetWidth", function(self, w)
+                if w ~= ns.BAR_WIDTH then self:SetWidth(ns.BAR_WIDTH) end
+            end)
+            hooksecurefunc(PlayerFrameHealthBar, "SetPoint", function(self, point, relTo, relPoint, x, y)
+                if point ~= "TOPLEFT" or x ~= 0 then
+                    self:ClearAllPoints()
+                    self:SetPoint("TOPLEFT", PlayerFrame, "TOPLEFT", 0, 0)
+                end
+            end)
+        end
     end
     if PlayerFrameManaBar then
         PlayerFrameManaBar:ClearAllPoints()
@@ -124,6 +164,20 @@ function ns.CustomStyleFrames()
         PlayerFrameManaBar:SetHeight(ns.MANA_HEIGHT)
         PlayerFrameManaBar:EnableMouse(false)
         ns.ClearBarBackgrounds(PlayerFrameManaBar)
+        
+        -- Bloquear dimensiones
+        if not PlayerFrameManaBar.isLocked then
+            PlayerFrameManaBar.isLocked = true
+            hooksecurefunc(PlayerFrameManaBar, "SetWidth", function(self, w)
+                if w ~= ns.BAR_WIDTH then self:SetWidth(ns.BAR_WIDTH) end
+            end)
+            hooksecurefunc(PlayerFrameManaBar, "SetPoint", function(self, point, relTo, relPoint, x, y)
+                if point ~= "TOPLEFT" or y ~= -2 then
+                    self:ClearAllPoints()
+                    self:SetPoint("TOPLEFT", PlayerFrameHealthBar, "BOTTOMLEFT", 0, -2)
+                end
+            end)
+        end
     end
 
     ns.ApplyCustomBackground(PlayerFrame, PlayerFrameHealthBar, PlayerFrameManaBar, ns.BAR_WIDTH)
@@ -148,7 +202,7 @@ function ns.CustomStyleFrames()
     if TargetFrame then
         TargetFrame:SetWidth(ns.BAR_WIDTH)
         TargetFrame:SetHeight(ns.HEALTH_HEIGHT + ns.MANA_HEIGHT + 2)
-        TargetFrame:SetHitRectInsets(0, 0, 0, 0)
+        TargetFrame:SetHitRectInsets(-70, 0, -20, -20) -- Expandir hitbox a la izquierda y verticalmente para el retrato
     end
     
     if TargetFrameHealthBar then
@@ -182,46 +236,55 @@ function ns.CustomStyleFrames()
         if TargetFrameToTManaBar then TargetFrameToTManaBar:EnableMouse(false) end
     end
 
+    -- Ocultamos el ToT nativo del Foco porque el foco en sí ya es pequeño
+    if FocusFrameToT then
+        FocusFrameToT:SetAlpha(0)
+        FocusFrameToT:EnableMouse(false)
+        if FocusFrameToTTextureFrame then FocusFrameToTTextureFrame:EnableMouse(false) end
+        if FocusFrameToTHealthBar then FocusFrameToTHealthBar:EnableMouse(false) end
+        if FocusFrameToTManaBar then FocusFrameToTManaBar:EnableMouse(false) end
+    end
+
     -- --- FOCO ---
     ns.SafeHide(FocusFrameTextureFrameTexture)
     ns.SafeHide(FocusFrameBackground)
     ns.SafeHide(FocusFrameFlash)
     
     ns.CleanDefaultTextures(FocusFrame)
-    -- Foco: Separación limpia, con la cara invertida
-    ns.StylePortrait(FocusFrameHealthBar, FocusFramePortrait, "RIGHT", "LEFT", 0, 68, true)
+    -- Foco: Estilo pequeño tipo ToT (Retrato a la izquierda, barra a la derecha)
+    ns.StylePortrait(FocusFrameHealthBar, FocusFramePortrait, "RIGHT", "LEFT", -5, 42, false)
     
-    if FocusFrameTextureFrameLevelText then FocusFrameTextureFrameLevelText:Hide() end
     if FocusFrameTextureFramePVPIcon then
+        FocusFrameTextureFramePVPIcon:SetSize(32, 32)
         FocusFrameTextureFramePVPIcon:ClearAllPoints()
         FocusFrameTextureFramePVPIcon:SetPoint("CENTER", FocusFramePortrait, "BOTTOMRIGHT", 0, 0)
     end
     if FocusFrameTextureFrame then FocusFrameTextureFrame:EnableMouse(false) end
     
     if FocusFrame then
-        FocusFrame:SetWidth(ns.BAR_WIDTH)
-        FocusFrame:SetHeight(ns.HEALTH_HEIGHT + ns.MANA_HEIGHT + 2)
-        FocusFrame:SetHitRectInsets(0, 0, 0, 0)
+        FocusFrame:SetWidth(ns.TOT_WIDTH)
+        FocusFrame:SetHeight(ns.TOT_HEALTH_HEIGHT + ns.TOT_MANA_HEIGHT + 2)
+        FocusFrame:SetHitRectInsets(-50, 0, -15, -15) -- Expandir hitbox a la izquierda para el retrato miniatura
     end
     
     if FocusFrameHealthBar then
         FocusFrameHealthBar:ClearAllPoints()
         FocusFrameHealthBar:SetPoint("TOPLEFT", FocusFrame, "TOPLEFT", 0, 0)
-        FocusFrameHealthBar:SetWidth(ns.BAR_WIDTH)
-        FocusFrameHealthBar:SetHeight(ns.HEALTH_HEIGHT)
+        FocusFrameHealthBar:SetWidth(ns.TOT_WIDTH)
+        FocusFrameHealthBar:SetHeight(ns.TOT_HEALTH_HEIGHT)
         FocusFrameHealthBar:EnableMouse(false)
         ns.ClearBarBackgrounds(FocusFrameHealthBar)
     end
     if FocusFrameManaBar then
         FocusFrameManaBar:ClearAllPoints()
-        FocusFrameManaBar:SetPoint("TOPLEFT", FocusFrameHealthBar, "BOTTOMLEFT", 0, -2)
-        FocusFrameManaBar:SetWidth(ns.BAR_WIDTH)
-        FocusFrameManaBar:SetHeight(ns.MANA_HEIGHT)
+        FocusFrameManaBar:SetPoint("TOPLEFT", FocusFrameHealthBar, "BOTTOMLEFT", 0, -1)
+        FocusFrameManaBar:SetWidth(ns.TOT_WIDTH)
+        FocusFrameManaBar:SetHeight(ns.TOT_MANA_HEIGHT)
         FocusFrameManaBar:EnableMouse(false)
         ns.ClearBarBackgrounds(FocusFrameManaBar)
     end
 
-    ns.ApplyCustomBackground(FocusFrame, FocusFrameHealthBar, FocusFrameManaBar, ns.BAR_WIDTH)
+    ns.ApplyCustomBackground(FocusFrame, FocusFrameHealthBar, FocusFrameManaBar, ns.TOT_WIDTH)
     
     ns.AlignFocusTexts()
     ns.StyleComboPoints()

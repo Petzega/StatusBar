@@ -8,6 +8,7 @@ function ns.InitCustomToT()
     customToT:RegisterForClicks("AnyUp")
     customToT:SetWidth(ns.TOT_WIDTH)
     customToT:SetHeight(ns.TOT_HEALTH_HEIGHT + ns.TOT_MANA_HEIGHT + 2)
+    customToT:SetHitRectInsets(0, -45, -15, -15) -- Expandir hitbox a la derecha para el retrato
     
     -- ANCLAJE ESTATICO: Se fija una sola vez al TargetFrame, evitando SetPoint durante el combate
     if TargetFrameHealthBar then
@@ -116,8 +117,33 @@ function ns.InitCustomToT()
             cTotHPText:SetText("")
         end
 
-        -- Color de la barra de vida (verde por defecto)
-        cTotHP:SetStatusBarColor(0, 1, 0)
+        -- Color de la barra de vida (Clase o Reacción)
+        local unitToT = "targettarget"
+        local r, g, b = 0, 1, 0
+        if not UnitIsPlayer(unitToT) and UnitIsTapped(unitToT) and not UnitIsTappedByPlayer(unitToT) then
+            r, g, b = 0.5, 0.5, 0.5 -- Gris
+        elseif UnitIsPlayer(unitToT) then
+            local _, class = UnitClass(unitToT)
+            local color = RAID_CLASS_COLORS[class]
+            if color then
+                r, g, b = color.r, color.g, color.b
+            end
+        else
+            local reaction = UnitReaction(unitToT, "player")
+            if reaction then
+                if reaction <= 4 then
+                    r, g, b = 1, 0.2, 0.2 -- Hostil
+                elseif reaction == 5 then
+                    r, g, b = 1, 1, 0.2 -- Neutral
+                else
+                    r, g, b = 0.2, 1, 0.2 -- Amistoso
+                end
+            end
+        end
+        cTotHP:SetStatusBarColor(r, g, b)
+        if cTotHP.bg then
+            cTotHP.bg:SetVertexColor(r * 0.25, g * 0.25, b * 0.25, 0.8)
+        end
 
         local power = UnitPower("targettarget")
         local powerMax = UnitPowerMax("targettarget")

@@ -39,6 +39,8 @@ local frame = CreateFrame("Frame")
 frame:RegisterEvent("PLAYER_ENTERING_WORLD")
 
 if PlayerFrame_UpdateArt then hooksecurefunc("PlayerFrame_UpdateArt", SafeUpdateHook) end
+if PlayerFrame_ToVehicleArt then hooksecurefunc("PlayerFrame_ToVehicleArt", SafeUpdateHook) end
+if PlayerFrame_ToPlayerArt then hooksecurefunc("PlayerFrame_ToPlayerArt", SafeUpdateHook) end
 if TargetFrame_Update then hooksecurefunc("TargetFrame_Update", SafeUpdateHook) end
 if FocusFrame_Update then hooksecurefunc("FocusFrame_Update", SafeUpdateHook) end
 
@@ -86,6 +88,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
         
         if not ns.totInitialized then
             safeCall(ns.InitCustomToT)
+            safeCall(ns.ApplyHealthBarColors) -- Hooks globales de colores de salud
             ns.totInitialized = true
         end
     end

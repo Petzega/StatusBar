@@ -58,3 +58,14 @@ El diseño exige **simetría**. El ícono de JcJ siempre se ancla en la esquina 
   * **Socket Vacío (Desactivado):** Se utiliza `Interface\Minimap\UI-Minimap-Background` teñido de negro transparente (`0, 0, 0, 0.7`) para generar un círculo sólido y perfecto sin bordes dentados (evitando teñir texturas con glow).
   * **Punto Activo:** Se reutiliza `Interface\ComboFrame\ComboPoint` conservando su resplandor rojo original.
 * **Anclaje:** El marco padre (`ComboFrame`) se reduce artificialmente a un tamaño de `1x1` y se ancla en el centro de la foto del objetivo, posicionando radialmente a los hijos. Esto evita generar colisiones invisibles gigantes que bloqueen los clics del usuario.
+
+## 7. HitBoxes (Cajas de Colisión)
+* **Problema Común:** Los elementos visuales (ej. retratos) dibujados fuera de las coordenadas establecidas por `SetWidth`/`SetHeight` en el marco padre no registran clics.
+* **Archivo:** `modules/layout.lua` y `modules/tot.lua`
+* **Solución:** Utilizar valores **negativos** en `SetHitRectInsets(left, right, top, bottom)`. Esto "expande" el hitbox invisible.
+* **Ejemplo:** `PlayerFrame:SetHitRectInsets(0, -70, -20, -20)` expande la caja 70 píxeles a la derecha para cubrir el retrato del jugador.
+
+## 8. Beneficios y Perjuicios (Buffs / Debuffs)
+* **Archivo:** `modules/layout.lua` -> Función `ns.PositionTargetBuffs`.
+* **Regla:** El número máximo de íconos por fila se calcula de forma **dinámica** midiendo el ancho real de la barra subyacente (`healthBar:GetWidth()`), en lugar de usar constantes globales. Esto asegura que los buffs del Foco (180px) se envuelvan antes que los del Objetivo (320px).
+* **Limpieza:** Se ha bloqueado permanentemente el marco nativo de pestaña de banda (`PlayerFrameGroupIndicator`) para mantener la estética minimalista y limpia de las barras.
